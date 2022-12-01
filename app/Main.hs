@@ -1,6 +1,7 @@
 module Main where
 import Debug.Trace
 import Data.List
+import Text.Read (readMaybe)
 
 main :: IO ()
 main = do
@@ -14,11 +15,11 @@ day1 :: IO String
 day1 = do
   input <- readFile "input/d1"
   let
-      p2 = (sum . take 3 . reverse . sort) elves
-      p1 = maximum elves
-      elves = map (sum . map read . words) (splitDbl input)
-      splitDbl ('\n':'\n':is) = [] : splitDbl is
-      splitDbl (i:is) = let (x:xs) = splitDbl is
-                            a = i : x in a:xs
-      splitDbl [] = [[]]
+      p2 = sum top3
+      p1 = head top3
+      top3 = (take 3 . reverse . sort) elves
+      elves = map sum (splitInput input)
+      splitInput = foldr (split . readMaybe) [[]] . lines
+        where split (Just i) (x:xs) = (i:x):xs
+              split _ xs = []:xs
   return $ show p1 ++ " and " ++ show p2
