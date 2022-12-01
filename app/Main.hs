@@ -4,9 +4,13 @@ import Data.List
 
 main :: IO ()
 main = do
-  day1
+  d1 <- day1
+  putStrLn $ "day1: " ++ d1
 
-day1 :: IO ()
+-- >>> day1
+-- "66616 and 199172"
+
+day1 :: IO String
 day1 = do
   input <- readFile "input/d1"
   let
@@ -17,5 +21,4 @@ day1 = do
       splitDbl (i:is) = let (x:xs) = splitDbl is
                             a = i : x in a:xs
       splitDbl [] = [[]]
-  print p1
-  print p2
+  return $ show p1 ++ " and " ++ show p2
