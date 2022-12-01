@@ -14,9 +14,7 @@ main = do
 day1 :: IO String
 day1 = do
   input <- readFile "input/d1"
-  let
-      p2 = sum top3
-      p1 = head top3
+  let (p1, p2) = (head top3, sum top3)
       top3 = (take 3 . reverse . sort) elves
       elves = map sum (splitInput input)
       splitInput = foldr (split . readMaybe) [[]] . lines
