@@ -15,7 +15,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1] <&> app
+  sequence [day1,day2,day3] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -57,3 +57,25 @@ day2 = do
       wi 'C' 'Y' = 0
       wi _ _ = 3
   return $ show p1 ++ " and " ++ show p2
+
+-- >>> day3
+-- "8493 and 2552"
+day3 :: IO String
+day3 = do
+  input <- readFile "input/d3"
+  let i = lines input
+      p1 = sum $ map (score . head) l
+        where l = map (uncurry intersect . s) i
+              s v = splitAt (length v `div` 2) v
+
+      p2 = sum $ map (score . head . uncurry dblIntersect) $ group i
+        where dblIntersect (a,b) = intersect a . intersect b
+              group = map mktup . fst . foldr f ([[]],0)
+                where f x (r,3)     = ([x]:r,1)
+                      f x (r:rs,n)  = ((x:r):rs,n+1)
+                      mktup [a,b,c] = ((a,b),c)
+
+      score c = let v = fromEnum c
+                in v - if v >= 97 then 96 else 38
+
+  pure $ show p1 ++ " and " ++ show p2
