@@ -1,21 +1,24 @@
+{-# OPTIONS -Wall #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-type-defaults #-}
+
 module Main where
 
-import           Data.Foldable (foldlM, foldrM)
-import           Data.List
-import           Debug.Trace
+import           Data.List hiding (group)
 import           Text.Read (readMaybe)
 import           Data.Functor
+import Data.List.Split (splitOn)
 
 main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3] <&> app
+  sequence [day1,day2,day3,day4] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -79,3 +82,24 @@ day3 = do
                 in v - if v >= 97 then 96 else 38
 
   pure $ show p1 ++ " and " ++ show p2
+
+-- >>> day4
+-- "569 and 936"
+day4 :: IO String
+day4 = do
+  input <- readFile "input/d4"
+
+  let pt = counttrue . flip map pairs
+      counttrue = foldl' (\t b -> t + if b then 1 else 0) 0
+
+      pairs :: [[[Int]]]
+      pairs = map split $ lines input where
+        split = map (map read . splitOn "-") . splitOn ","
+
+      fulCont [l,r] = con l r || con r l where
+        con [p,q][x,y] = p <= x && y <= q
+
+      parCont [l,r] = con l r || con r l where
+        con [p,q][x,_] = p <= x && q >= x
+
+  pure $ show (pt fulCont) ++ " and " ++ show (pt parCont)
