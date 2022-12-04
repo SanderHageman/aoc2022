@@ -90,7 +90,7 @@ day4 = do
   input <- readFile "input/d4"
 
   let pt = counttrue . flip map pairs
-      counttrue = foldl' (\t b -> t + if b then 1 else 0) 0
+      counttrue = length . filter id
 
       pairs :: [[[Int]]]
       pairs = map split $ lines input where
