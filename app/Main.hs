@@ -8,17 +8,21 @@ import           Data.List hiding (group)
 import           Text.Read (readMaybe)
 import           Data.Functor
 import Data.List.Split (splitOn)
+import Data.Sequence ((><))
+import qualified Data.Sequence as Seq
+import Data.Char
+import Data.Foldable (Foldable(toList))
 
 main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4] <&> app
+  sequence [day1,day2,day3,day4,day5] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -103,3 +107,31 @@ day4 = do
         con [p,q][x,_] = p <= x && q >= x
 
   pure $ show (pt fulCont) ++ " and " ++ show (pt parCont)
+
+-- >>> day5
+-- "\"RLFNRTNFB\" and \"MHQTLJRLB\""
+day5 :: IO String
+day5 = do
+  input <- readFile "input/d5"
+
+  let [rawCra, rawPrc] = splitOn "\n\n" input
+
+      cra = Seq.fromList $ map clnRow $ mkRows rawCra
+        where
+          clnRow = Seq.fromList . filter (/= ' ')
+          mkRows = filter (any isAlpha) . transpose . init . lines
+
+      prc = map parseProc $ lines rawPrc
+        where
+          parseProc = (\[a, b, c] -> (a, b - 1, c - 1)) . getN
+          getN = map read . filter (any isNumber) . words
+
+      apply fun st (n, f, t) =
+        let tk = fun $ Seq.take n $ Seq.index st f
+        in Seq.adjust' (Seq.drop n) f $ Seq.adjust' (tk ><) t st
+
+      p1 = gettops $ foldl' (apply Seq.reverse) cra prc
+      p2 = gettops $ foldl' (apply id) cra prc
+      gettops = toList . fmap (`Seq.index` 0)
+
+  pure $ show p1 ++ " and " ++ show p2
