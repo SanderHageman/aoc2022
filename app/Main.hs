@@ -12,6 +12,7 @@ import Data.Sequence ((><))
 import qualified Data.Sequence as Seq
 import Data.Char
 import Data.Foldable (Foldable(toList))
+import Data.Maybe
 
 main :: IO ()
 main = days >>= putStrLn
@@ -121,14 +122,17 @@ day5 = do
           clnRow = Seq.fromList . filter (/= ' ')
           mkRows = filter (any isAlpha) . transpose . init . lines
 
-      prc = map parseProc $ lines rawPrc
+      prc = mapMaybe parseMove $ lines rawPrc
         where
-          parseProc = (\[a, b, c] -> (a, b - 1, c - 1)) . getN
-          getN = map read . filter (any isNumber) . words
+          parseMove s = case words s of
+            ["move", n, "from", f, "to", t]
+              -> (,,) <$> readMaybe n <*> readMaybe f <*> readMaybe t
+            _ -> error $ "Invalid input: " ++ s
 
       apply fun st (n, f, t) =
-        let tk = fun $ Seq.take n $ Seq.index st f
-        in Seq.adjust' (Seq.drop n) f $ Seq.adjust' (tk ><) t st
+        let tk = fun $ Seq.take n $ Seq.index st (f - 1)
+        in Seq.adjust' (Seq.drop n) (f - 1)
+         $ Seq.adjust' (tk ><)      (t - 1) st
 
       p1 = gettops $ foldl' (apply Seq.reverse) cra prc
       p2 = gettops $ foldl' (apply id) cra prc
