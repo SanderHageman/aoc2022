@@ -13,17 +13,18 @@ import qualified Data.Sequence as Seq
 import Data.Char
 import Data.Foldable (Foldable(toList))
 import Data.Maybe
+import Debug.Trace (traceShow)
 
 main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5] <&> app
+  sequence [day1,day2,day3,day4,day5,day6] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -138,4 +139,16 @@ day5 = do
       p2 = gettops $ foldl' (apply id) cra prc
       gettops = toList . fmap (`Seq.index` 0)
 
+  pure $ show p1 ++ " and " ++ show p2
+
+-- >>> day6
+-- "1356 and 2564"
+day6 :: IO String
+day6 = do
+  input <- readFile "input/d6"
+  let chk s@(_:xs) n c = if (length . nub . take c) s == c
+                         then n + c
+                         else chk xs (n + 1) c
+      p1 = chk input 0 4
+      p2 = chk input 0 14
   pure $ show p1 ++ " and " ++ show p2
