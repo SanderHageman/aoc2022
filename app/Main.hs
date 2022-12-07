@@ -2,6 +2,7 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# LANGUAGE NumericUnderscores #-}
 
 module Main where
 
@@ -174,8 +175,8 @@ day7 = do
                           if i > 100000 then 0 else i
 
       p2 = minimum $ go fs where
-        free = 70000000 - sz fs
-        needed = 30000000 - free
+        free = 70_000_000 - sz fs
+        needed = 30_000_000 - free
         go (Dir _ i ds) = if i >= needed
                           then i : concatMap go ds
                           else []
@@ -190,7 +191,7 @@ day7 = do
         let toFs ["dir", s] = traceDfs s
             toFs [n, s] = pure $ File s $ read n
         subFs <- mapM toFs folder
-        let fsize = foldl' (\r x -> r + sz x) 0 subFs
+        let fsize = foldr ((+) . sz) 0 subFs
         pure $ Dir dirName fsize subFs
 
       extractHead :: State [[[String]]] [[String]]
