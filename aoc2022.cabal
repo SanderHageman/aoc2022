@@ -29,6 +29,6 @@ executable aoc2022
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base, split, containers
+    build-depends:    base, split, containers, mtl
     hs-source-dirs:   app
     default-language: Haskell2010

@@ -1,6 +1,7 @@
 {-# OPTIONS -Wall #-}
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# OPTIONS_GHC -Wno-type-defaults #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Main where
 
@@ -13,7 +14,7 @@ import qualified Data.Sequence as Seq
 import Data.Char
 import Data.Foldable (Foldable(toList))
 import Data.Maybe
-import Debug.Trace (traceShow)
+import Control.Monad.State
 
 main :: IO ()
 main = days >>= putStrLn
@@ -24,7 +25,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -151,4 +152,48 @@ day6 = do
                          else chk xs (n + 1) c
       p1 = chk input 0 4
       p2 = chk input 0 14
+  pure $ show p1 ++ " and " ++ show p2
+
+-- >>> day7
+-- "1084134 and 6183184"
+
+data Fs = Dir String Int [Fs] | File String Int
+  deriving(Show)
+
+day7 :: IO String
+day7 = do
+  input <- map tail
+            . filter ((=="ls"). head . head)
+            . tail . map (map words . lines)
+            . splitOn "$ " <$> readFile "input/d7"
+
+  let fs = evalState (traceDfs "/") input
+      p1 = go fs where
+        go File {} = 0
+        go (Dir _ i ds) = sum (map go ds) +
+                          if i > 100000 then 0 else i
+
+      p2 = minimum $ go fs where
+        free = 70000000 - sz fs
+        needed = 30000000 - free
+        go (Dir _ i ds) = if i >= needed
+                          then i : concatMap go ds
+                          else []
+        go File {} = []
+
+      sz (Dir _ s _) = s
+      sz (File _ s) = s
+
+      traceDfs :: String -> State [[[String]]] Fs
+      traceDfs dirName = do
+        folder <- extractHead
+        let toFs ["dir", s] = traceDfs s
+            toFs [n, s] = pure $ File s $ read n
+        subFs <- mapM toFs folder
+        let fsize = foldl' (\r x -> r + sz x) 0 subFs
+        pure $ Dir dirName fsize subFs
+
+      extractHead :: State [[[String]]] [[String]]
+      extractHead = get >>= (\(d:ds) -> put ds >> return d)
+
   pure $ show p1 ++ " and " ++ show p2
