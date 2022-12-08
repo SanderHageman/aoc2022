@@ -122,7 +122,7 @@ day5 = do
 
       cra = Seq.fromList $ map clnRow $ mkRows rawCra
         where
-          clnRow = Seq.fromList . filter (/= ' ')
+          clnRow = filter (/= ' ')
           mkRows = filter (any isAlpha) . transpose . init . lines
 
       prc = mapMaybe parseMove $ lines rawPrc
@@ -133,13 +133,13 @@ day5 = do
             _ -> error $ "Invalid input: " ++ s
 
       apply fun st (n, f, t) =
-        let tk = fun $ Seq.take n $ Seq.index st (f - 1)
-        in Seq.adjust' (Seq.drop n) (f - 1)
-         $ Seq.adjust' (tk ><)      (t - 1) st
+        let tk = fun $ take n $ Seq.index st (f - 1)
+        in Seq.adjust' (drop n) (f - 1)
+         $ Seq.adjust' (tk ++)  (t - 1) st
 
-      p1 = gettops $ foldl' (apply Seq.reverse) cra prc
+      p1 = gettops $ foldl' (apply reverse) cra prc
       p2 = gettops $ foldl' (apply id) cra prc
-      gettops = toList . fmap (`Seq.index` 0)
+      gettops = toList . fmap (!! 0)
 
   pure $ show p1 ++ " and " ++ show p2
 
