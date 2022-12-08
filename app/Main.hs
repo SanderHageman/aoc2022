@@ -16,6 +16,7 @@ import Data.Char
 import Data.Foldable (Foldable(toList))
 import Data.Maybe
 import Control.Monad.State
+import qualified Data.Set as Set
 
 main :: IO ()
 main = days >>= putStrLn
@@ -196,5 +197,41 @@ day7 = do
 
       extractHead :: State [[[String]]] [[String]]
       extractHead = get >>= (\(d:ds) -> put ds >> return d)
+
+  pure $ show p1 ++ " and " ++ show p2
+
+-- >>> day8
+-- "1870 and 517440"
+
+day8 :: IO String
+day8 = do
+  input <- map (map digitToInt) . lines <$> readFile "input/d8"
+  let a = zipWith (zip3 [0..] . repeat) [0..] input
+      b = map reverse a
+      c = transpose a
+      d = map reverse c
+
+      p1 = length $ foldl1' Set.union [z a, z b, z c, z d]
+      z = foldl' f Set.empty
+      f r ln = fst $ foldl' checkLine (r, -1) ln
+      checkLine (r, h) (x,y,n) | n > h = (Set.insert (x,y) r, n)
+                               | otherwise = (r, h)
+
+
+      p2 = maximum $ concatMap (map scenicScore) a :: Int
+      dirs = [(1,0), (-1,0), (0,1), (0,-1)]
+      scenicScore (x,y,n) = foldr ((*) . getSight (x,y)) 1 dirs
+        where getSight prev dir =
+                let cur = dir +- prev
+                in case getAt cur of
+                    Just (_,_,n') -> 1 + if n' >= n then 0
+                                    else getSight cur dir
+                    Nothing -> 0
+
+      len = length a
+      getAt (x,y) = if x >= len || x < 0 || y >= len || y < 0
+                    then Nothing else Just (a !! y !! x)
+      (+-) (l,r) (l',r') = (l+l',r+r')
+
 
   pure $ show p1 ++ " and " ++ show p2
