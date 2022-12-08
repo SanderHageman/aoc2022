@@ -10,24 +10,22 @@ import           Data.List hiding (group)
 import           Text.Read (readMaybe)
 import           Data.Functor
 import Data.List.Split (splitOn)
-import Data.Sequence ((><))
 import qualified Data.Sequence as Seq
 import Data.Char
 import Data.Foldable (Foldable(toList))
 import Data.Maybe
 import Control.Monad.State
-import qualified Data.Set as Set
 
 main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -173,7 +171,7 @@ day7 = do
       p1 = go fs where
         go File {} = 0
         go (Dir _ i ds) = sum (map go ds) +
-                          if i > 100000 then 0 else i
+                          if i > 100_000 then 0 else i
 
       p2 = minimum $ go fs where
         free = 70_000_000 - sz fs
@@ -206,32 +204,33 @@ day7 = do
 day8 :: IO String
 day8 = do
   input <- map (map digitToInt) . lines <$> readFile "input/d8"
-  let a = zipWith (zip3 [0..] . repeat) [0..] input
-      b = map reverse a
-      c = transpose a
-      d = map reverse c
+  let a = zipWith (zip3 [0 ..] . repeat) [0 ..] input
 
-      p1 = length $ foldl1' Set.union [z a, z b, z c, z d]
-      z = foldl' f Set.empty
-      f r ln = fst $ foldl' checkLine (r, -1) ln
-      checkLine (r, h) (x,y,n) | n > h = (Set.insert (x,y) r, n)
-                               | otherwise = (r, h)
+      p1 = length . filter id . concatMap (map hasSight) $ a
+      hasSight (x, y, n) = foldr ((||) . getSight (x, y)) False dirs
+        where
+          getSight prev dir =
+            let cur = dir +- prev
+            in case getAt cur of
+                 Just (_, _, n') -> n > n' && getSight cur dir
+                 Nothing         -> True
 
-
-      p2 = maximum $ concatMap (map scenicScore) a :: Int
-      dirs = [(1,0), (-1,0), (0,1), (0,-1)]
-      scenicScore (x,y,n) = foldr ((*) . getSight (x,y)) 1 dirs
-        where getSight prev dir =
-                let cur = dir +- prev
-                in case getAt cur of
-                    Just (_,_,n') -> 1 + if n' >= n then 0
-                                    else getSight cur dir
-                    Nothing -> 0
+      p2 = maximum $ concatMap (map scenicScore) a
+      dirs = [(1, 0), (-1, 0), (0, 1), (0, -1)]
+      scenicScore (x, y, n) = foldr ((*) . getSight (x, y)) 1 dirs
+        where
+          getSight prev dir =
+            let cur = dir +- prev
+            in case getAt cur of
+                 Just (_, _, n') -> 1
+                   + if n' >= n
+                     then 0
+                     else getSight cur dir
+                 Nothing         -> 0
 
       len = length a
-      getAt (x,y) = if x >= len || x < 0 || y >= len || y < 0
-                    then Nothing else Just (a !! y !! x)
-      (+-) (l,r) (l',r') = (l+l',r+r')
-
-
+      getAt (x, y) = if x >= len || x < 0 || y >= len || y < 0
+                     then Nothing
+                     else Just (a !! y !! x)
+      (+-) (l, r) (l', r') = (l + l', r + r')
   pure $ show p1 ++ " and " ++ show p2
