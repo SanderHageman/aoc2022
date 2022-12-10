@@ -16,6 +16,7 @@ import Data.Foldable (Foldable(toList))
 import Data.Maybe
 import Control.Monad.State
 import qualified Data.Set as Set
+import ParseLetters (readDisplay)
 
 main :: IO ()
 main = days >>= putStrLn
@@ -284,8 +285,7 @@ day10 = do
 
   input <- concatMap (toTok . words) . lines <$> readFile "input/d10"
 
-  let
-      p1 = sum $ map (\x -> (x+1) * pro (take x input)) ns
+  let p1 = sum $ map (\x -> (x+1) * pro (take x input)) ns
       pro = foldl' apply 1
       ns = [19,59,99,139,179,219]
 
@@ -302,6 +302,6 @@ day10 = do
         in (d ++ puts, apply x op)
       display = chunksOf 40 dispString
 
-  mapM_ print display
+  p2 <- readDisplay display
 
-  pure $ show p1 ++ " and " ++ "PLEFULPB"
+  pure $ show p1 ++ " and " ++ p2
