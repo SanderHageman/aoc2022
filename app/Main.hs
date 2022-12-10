@@ -4,7 +4,7 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# LANGUAGE NumericUnderscores #-}
 
-module Main where
+module Main(main) where
 
 import           Data.List hiding (group)
 import           Text.Read (readMaybe)
@@ -284,17 +284,16 @@ day10 = do
 
   input <- concatMap (toTok . words) . lines <$> readFile "input/d10"
 
-  let p1 = sum $ map (\x -> (x+1) * pro (take x input)) ns
-      pro = foldl' apply 1
-      ns = [19,59,99,139,179,219]
+  let p1 = sum $ map (\x -> x * states !! x) [20, 60..220]
+      states = error "Array starts at 1 👺" : scanl' apply 1 input
 
       apply v (AddX n) = v + n
       apply v _ = v
 
-      annotedInstr = zip repRange40 $ take 240 input
-      repRange40 = concat $ repeat $ take 40 [0..]
-      (dispString, _) = foldl' fa ([], 1) annotedInstr
-      fa (d, x) (p, op) =
+      annotedInstr = zip repRange40 input
+      repRange40 = concat $ repeat [0..39]
+      (dispString, _) = foldl' f ([], 1) annotedInstr
+      f (d, x) (p, op) =
         let draw = abs (p-x) <= 1
             puts | draw = "#"
                  | otherwise = "."
