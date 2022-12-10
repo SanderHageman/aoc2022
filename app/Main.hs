@@ -225,15 +225,14 @@ day8 = do
             let cur = dir +- prev
             in case getAt cur of
                  Just (_, _, n') -> 1
-                   + if n' >= n
-                     then 0
+                   + if n' >= n then 0
                      else getSight cur dir
                  Nothing         -> 0
 
       len = length a
+      ye = Set.fromList $ map Set.fromList a
       getAt (x, y) = if x >= len || x < 0 || y >= len || y < 0
-                     then Nothing
-                     else Just (a !! y !! x)
+                     then Nothing else Just (Set.elemAt x $ Set.elemAt y ye)
   pure $ show p1 ++ " and " ++ show p2
 
 -- tuple stuff
