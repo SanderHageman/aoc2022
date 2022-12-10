@@ -9,23 +9,24 @@ module Main where
 import           Data.List hiding (group)
 import           Text.Read (readMaybe)
 import           Data.Functor
-import Data.List.Split (splitOn)
+import Data.List.Split (splitOn, chunksOf)
 import qualified Data.Sequence as Seq
 import Data.Char
 import Data.Foldable (Foldable(toList))
 import Data.Maybe
 import Control.Monad.State
+import qualified Data.Set as Set
 
 main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\nday9: 6470 and 2658\nday10: 16480 and PLEFULPB\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -232,5 +233,75 @@ day8 = do
       getAt (x, y) = if x >= len || x < 0 || y >= len || y < 0
                      then Nothing
                      else Just (a !! y !! x)
-      (+-) (l, r) (l', r') = (l + l', r + r')
   pure $ show p1 ++ " and " ++ show p2
+
+-- tuple stuff
+(+-) :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
+(+-) (l, r) (l', r') = (l + l', r + r')
+(-+) :: (Num a, Num b) => (a, b) -> (a, b) -> (a, b)
+(-+) (l, r) (l', r') = (l - l', r - r')
+
+-- >>> day9
+-- "6470 and 2658"
+
+day9 :: IO String
+day9 = do
+  let dir c = case c of
+            "R" -> (0,1)
+            "L" -> (0,-1)
+            "U" -> (1,0)
+            "D" -> (-1,0)
+      toTok [d, sN] = let n = read sN
+                      in replicate n $ dir d
+
+  input <- concatMap (toTok . words) . lines <$> readFile "input/d9"
+
+  let p1 = a 2
+      p2 = a 10
+      a n = length $ snd $ foldl' f (replicate n (0,0), Set.empty) input
+      f (h:kns, s) m = let hNewPos = h +- m
+                           (tNew, lst) = foldl' q ([hNewPos], hNewPos) kns
+                           q (l, p) x = let new = follow p x in (l++[new], new)
+                        in (tNew, Set.insert lst s)
+      follow h t = let (dX, dY) = h -+ t
+                       offset n | abs n == 2 = 1 * signum n
+                                | abs dX + abs dY < 3 = 0
+                                | otherwise = n
+                    in t +- (offset dX, offset dY)
+
+  pure $ show p1 ++ " and " ++ show p2
+
+data Inst = NoOp | AddX Int
+  deriving Show
+
+-- >>>day10
+-- "16480 and PLEFULPB"
+
+day10 :: IO String
+day10 = do
+  let toTok ["addx", sN] = [NoOp, AddX $ read sN]
+      toTok ["noop"]     = [NoOp]
+
+  input <- concatMap (toTok . words) . lines <$> readFile "input/d10"
+
+  let
+      p1 = sum $ map (\x -> (x+1) * pro (take x input)) ns
+      pro = foldl' apply 1
+      ns = [19,59,99,139,179,219]
+
+      apply v (AddX n) = v + n
+      apply v _ = v
+
+      annotedInstr = zip repRange40 $ take 240 input
+      repRange40 = concat $ repeat $ take 40 [0..]
+      (dispString, _) = foldl' fa ([], 1) annotedInstr
+      fa (d, x) (p, op) =
+        let draw = abs (p-x) <= 1
+            puts | draw = "#"
+                 | otherwise = "."
+        in (d ++ puts, apply x op)
+      display = chunksOf 40 dispString
+
+  mapM_ print display
+
+  pure $ show p1 ++ " and " ++ "PLEFULPB"
