@@ -3,6 +3,7 @@
 {-# OPTIONS_GHC -Wno-type-defaults #-}
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 {-# LANGUAGE NumericUnderscores #-}
+{-# LANGUAGE TupleSections #-}
 
 module Main(main) where
 
@@ -17,6 +18,9 @@ import Data.Maybe
 import Control.Monad.State
 import qualified Data.Set as Set
 import ParseLetters (readDisplay)
+import Text.Show.Functions ()
+import Data.Bifunctor
+import qualified Data.Foldable as Seq
 
 main :: IO ()
 main = days >>= putStrLn
@@ -27,7 +31,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -303,3 +307,62 @@ day10 = do
   p2 <- readDisplay display
 
   pure $ show p1 ++ " and " ++ p2
+
+
+-- >>>day11
+-- "50616 and 11309046332"
+
+data Monkey = Monkey (Int -> Int) Int Int Int
+  deriving Show
+
+mkDiv :: Monkey -> Int
+mkDiv (Monkey _ tst _ _) = tst
+
+day11 :: IO String
+day11 = do
+  let toMonkey :: [String] -> ([Int], Monkey) -- forgive my sins
+      toMonkey [ns, op, tst, tr, fs] = (items, Monkey opera divby tTrue tFlse) where
+        items = map read $ splitOn ", " ns
+        opera = let [o,r] = (drop 3 . words) op
+                    os | o == "*"  = (*)
+                       | otherwise = (+)
+                in case readMaybe r of
+                  Nothing -> \n -> os n n
+                  Just n  -> os n
+        divby = getEndN tst
+        tTrue = getEndN tr
+        tFlse = getEndN fs
+        getEndN = read . last . words
+
+  input <- map (toMonkey . map ((\[_,r] -> r) . splitOn ": ") . tail . lines)
+          . splitOn "\n\n" <$> readFile "input/d11"
+
+  let (startItems, monkeys) =
+        bimap (Seq.fromList . zip (zip [0..] (repeat 0)))
+        (Seq.fromList . zip [0..]) (unzip input)
+
+      p1 = let [m1,m2] = monkeyBusiness $ monkeyRounds [0..19]   False in m1 * m2
+      p2 = let [m1,m2] = monkeyBusiness $ monkeyRounds [0..9999] True  in m1 * m2
+
+      monkeyBusiness = take 2 . reverse . sort . map (snd . fst) . Seq.toList
+
+      monkeyRounds range isP2 = foldl' monkeyRound startItems range
+        where
+          monkeyRound r _ = foldl' f arg r
+          f s ((idx, nInsp), is) = Seq.adjust' newSelf idx $ foldl' modi s inspItems
+            where
+              modi s' (i, n) = Seq.adjust' (second (++[n])) i s'
+              newSelf _ = ((idx, nInsp + newInsp),[])
+              is' = is ++ snd (Seq.index s idx)
+              inspItems = map inspect is'
+              newInsp = length is'
+              (Monkey op tst tr fs) = snd $ Seq.index monkeys idx
+              inspect x = (,newVal) $ if newVal `mod` tst == 0 then tr else fs
+                where newVal | isP2      = op x `mod` p2Mod
+                             | otherwise = op x `div` 3
+
+          nMonkeys = length monkeys
+          arg = Seq.fromList $ zip (zip [0..nMonkeys-1] (repeat 0)) (repeat [])
+          p2Mod = product . map (mkDiv . snd) $ Seq.toList monkeys
+
+  pure $ show p1 ++ " and " ++ show p2
