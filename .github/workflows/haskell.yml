@@ -36,6 +36,6 @@ jobs:
     - name: Install dependencies
       run: |
         cabal update
-        cabal build --only-dependencies --enable-tests --enable-benchmarks
+        cabal build
     - name: Run
       run: cabal run
