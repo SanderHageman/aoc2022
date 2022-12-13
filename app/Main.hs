@@ -31,7 +31,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day13] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -364,5 +364,37 @@ day11 = do
           nMonkeys = length monkeys
           arg = Seq.fromList $ zip (zip [0..nMonkeys-1] (repeat 0)) (repeat [])
           p2Mod = product . map (mkDiv . snd) $ Seq.toList monkeys
+
+  pure $ show p1 ++ " and " ++ show p2
+
+data Packet = L [Packet] | N Int
+  deriving (Show, Eq, Read)
+
+instance Ord Packet where
+  compare (N l) (N r) = compare l r
+  compare (L l) (L r) = compare l r
+  compare l r@(N _) = compare l (L [r])
+  compare l@(N _) r = compare (L [l]) r
+
+-- >>> day13
+-- "4821 and 21890"
+
+day13 :: IO String
+day13 = do
+  let mo = concatMap ye
+      ye '[' = "L ["
+      ye c | isDigit c = "N " ++[c]
+           | otherwise = [c]
+      fix10 ('N':' ':'1':'N':' ':'0':xs) = "N 10" ++ fix10 xs
+      fix10 (x:xs) = x:fix10 xs
+      fix10 [] = []
+      divi = [L [ L [ N 2]], L [ L [ N 6]]]
+
+  input <- readFile "input/d13"
+
+  let p1' = zip [1..] . map (map (read . fix10 . mo) . lines) . splitOn "\n\n"
+      p2' = map (read . fix10 . mo) . filter (not . null) . lines
+      p1 = sum $ map fst $ filter (\(_, [l,r]) -> l < r) (p1' input :: [(Int, [Packet])])
+      p2 = product $ map (+1) $ findIndices (`elem` divi) $ sort (p2' input ++ divi)
 
   pure $ show p1 ++ " and " ++ show p2
