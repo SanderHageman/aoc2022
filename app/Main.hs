@@ -26,12 +26,12 @@ main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\nday9: 6470 and 2658\nday10: 16480 and PLEFULPB\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\nday9: 6470 and 2658\nday10: 16480 and PLEFULPB\nday11: 50616 and 11309046332\nday12: 380 and 375\nday13: 4821 and 21890\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day13] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -367,6 +367,40 @@ day11 = do
 
   pure $ show p1 ++ " and " ++ show p2
 
+
+-- >>> day12
+-- "380 and 375"
+
+day12 :: IO String
+day12 = do
+  input <- map (map (flip (-) (ord 'a') . ord)) . lines <$> readFile "input/d12"
+
+  let lst = Seq.fromList . zip [0..] $ concat input
+      (Just sPos) = Seq.findIndexL ((==(-14)) . snd) lst
+      (Just ePos) = Seq.findIndexL ((==(-28)) . snd) lst
+      grd = Seq.adjust' (second $ const 0) sPos lst
+      len = length (head input)
+      nbs = [1, -1,len,-len]
+      gnb x o = grd Seq.!? (x + o)
+      gns (x,h) s = filter (\p -> h-snd p <= 1 && Set.notMember p s)
+                      $ mapMaybe (gnb x) nbs
+
+      bfs v ((s, d):r) isEnd
+        | isEnd s = d
+        | Set.member s v = bfs v r isEnd
+        | otherwise = bfs v' r' isEnd
+          where v' = Set.insert s v
+                r' = r ++ map (,d+1) (gns s v)
+
+      p1 = bfs Set.empty [((ePos, 25), 0)] ((==sPos) . fst)
+      p2 = bfs Set.empty [((ePos, 25), 0)] ((==0)    . snd)
+
+  pure $ show p1 ++ " and " ++ show p2
+
+
+-- >>> day13
+-- "4821 and 21890"
+
 data Packet = L [Packet] | N Int
   deriving (Show, Eq, Read)
 
@@ -375,9 +409,6 @@ instance Ord Packet where
   compare (L l) (L r) = compare l r
   compare l r@(N _) = compare l (L [r])
   compare l@(N _) r = compare (L [l]) r
-
--- >>> day13
--- "4821 and 21890"
 
 day13 :: IO String
 day13 = do
