@@ -32,7 +32,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13, day14] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -432,40 +432,61 @@ day13 = do
   pure $ show p1 ++ " and " ++ show p2
 
 -- >>> day14
--- "[[(498,4),(498,6),(496,6)],[(503,4),(502,4),(502,9),(494,9)]]"
+-- "24 and 93"
 
-data Rock = RNode (Int, Int) Rock | REnd (Int, Int)
-  deriving (Show)
+data Tile = Rock | Air | Sand | Origin
 
-toRock :: [String] -> Rock
-toRock sts = case sts of
-  [s] -> REnd (makeVertex s)
-  (s:ss) -> RNode (makeVertex s) (toRock ss)
-
-makeVertex :: String -> (Int, Int)
-makeVertex = toTup . map read . splitOn ","
-toTup :: [Int] -> (Int, Int)
-toTup [l,r] = (l,r)
+instance Show Tile where
+  show Rock = "#"
+  show Air = "."
+  show Sand = "o"
+  show Origin = "+"
 
 day14 :: IO String
 day14 = do
-  input <- map (map makeVertex . splitOn " -> ") . lines <$> readFile "input/d14"
+  let makeVertex = (\[l,r] -> (l,r)) . map read . splitOn ","
+      tupWin (l:r:xs) = (l,r):tupWin(r:xs)
+      tupWin _ = []
+
+  input <- concatMap ((tupWin . map makeVertex) . splitOn " -> ")
+           . lines <$> readFile "input/d14"
 
   let origin = (500,0)
 
-      rocks = foldl' f M.empty input
-        where f r x = foldl' f' r x
-              f' r x = undefined
+      startCave = M.insert origin Origin $ foldl' f M.empty rockRanges
+        where f r x = M.insert x Rock r
+              rockRanges = concatMap interp input
+              interp ((x,y), (x',y')) = [(p,q) | p <- [u'..u], q <- [v'..v]]
+                where (u,u') = (max x x', min x x')
+                      (v,v') = (max y y', min y y')
 
-      bottom rs = maximum $ map (go 0) rs
-        where
-          go y' (RNode (_,y) n) = go (max y' y) n
-          go y' (REnd (_,y)) = max y' y
+      p1Floor = foldl' (\d (_,y) -> max d y) 0 (M.keys startCave)
+      p2Floor = p1Floor + 2
 
-      isFree p = undefined
-      (dirDown, dirLeftD, dirRightD) = ((0,1), (-1,1), (1,1))
-      moveSand p | isFree $ p +- dirDown = undefined
-                 | isFree $ p +- dirLeftD = undefined
-                 | isFree $ p +- dirRightD = undefined
+      caveStates isP1 = scanl' f (Nothing, startCave) [0..]
+        where f (_, cave) n = (result, M.insert rest Sand cave)
+                where (fin, rest) = restPlace cave isP1
+                      result | fin = Just n
+                             | otherwise = Nothing
 
-  pure $ show $  input
+      restPlace cave isP1 = go origin
+        where (dirDown, dirLeftD, dirRightD) = ((0,1), (-1,1), (1,1))
+              go p | isP1 && snd p > p1Floor = (True, p)
+                   | can (p +- dirDown)   = go (p +- dirDown)
+                   | can (p +- dirLeftD)  = go (p +- dirLeftD)
+                   | can (p +- dirRightD) = go (p +- dirRightD)
+                   | p == origin = (True, p)
+                   | otherwise = (False, p)
+
+              can p | snd p >= p2Floor = False
+                    | otherwise = case cave M.!? p of
+                        Nothing -> True
+                        Just Air -> True
+                        Just Origin -> True
+                        _ -> False
+
+      (p1, p2) = (go $ caveStates True, go (caveStates False) + 1) where
+        go ((Just n, _):_) = n
+        go (_:xs) = go xs
+
+  pure $ show p1 ++ " and " ++ show p2
