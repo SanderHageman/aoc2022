@@ -27,7 +27,7 @@ main :: IO ()
 main = days >>= putStrLn
 
 -- >>> days
--- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\nday9: 6470 and 2658\nday10: 16480 and PLEFULPB\nday11: 50616 and 11309046332\nday12: 380 and 375\nday13: 4821 and 21890\n"
+-- "day1: 66616 and 199172\nday2: 8933 and 11998\nday3: 8493 and 2552\nday4: 569 and 936\nday5: \"RLFNRTNFB\" and \"MHQTLJRLB\"\nday6: 1356 and 2564\nday7: 1084134 and 6183184\nday8: 1870 and 517440\nday9: 6470 and 2658\nday10: 16480 and PLEFULPB\nday11: 50616 and 11309046332\nday12: 380 and 375\nday13: 4821 and 21890\nday14: 715 and 25248\n"
 days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
@@ -432,7 +432,7 @@ day13 = do
   pure $ show p1 ++ " and " ++ show p2
 
 -- >>> day14
--- "24 and 93"
+-- "715 and 25248"
 
 data Tile = Rock | Air | Sand | Origin
 
@@ -463,20 +463,23 @@ day14 = do
       p1Floor = foldl' (\d (_,y) -> max d y) 0 (M.keys startCave)
       p2Floor = p1Floor + 2
 
-      caveStates isP1 = scanl' f (Nothing, startCave) [0..]
-        where f (_, cave) n = (result, M.insert rest Sand cave)
-                where (fin, rest) = restPlace cave isP1
+      caveStates isP1 = scanl' f (Nothing, [], startCave) [0..]
+        where f (_, hi, cave) n = (result, hist, M.insert rest Sand cave)
+                where (fin, rest, hist) = restPlace cave isP1 hi
                       result | fin = Just n
                              | otherwise = Nothing
 
-      restPlace cave isP1 = go origin
-        where (dirDown, dirLeftD, dirRightD) = ((0,1), (-1,1), (1,1))
-              go p | isP1 && snd p > p1Floor = (True, p)
-                   | can (p +- dirDown)   = go (p +- dirDown)
-                   | can (p +- dirLeftD)  = go (p +- dirLeftD)
-                   | can (p +- dirRightD) = go (p +- dirRightD)
-                   | p == origin = (True, p)
-                   | otherwise = (False, p)
+      restPlace cave isP1 prevHist = let cont@(h:_) = tryPop prevHist
+                                     in go h cont
+        where go p hist | isP1 && snd p > p1Floor = (True, p, hist)
+                        | otherwise = case nextOptions p of
+                                        p':_ -> go p' (p':hist)
+                                        [] -> (p==origin, p, hist)
+
+              nextOptions p = mapMaybe (f . (p +-)) dirs
+                where f c | can c = Just c
+                          | otherwise = Nothing
+                      dirs = [(0,1), (-1,1), (1,1)]
 
               can p | snd p >= p2Floor = False
                     | otherwise = case cave M.!? p of
@@ -485,8 +488,11 @@ day14 = do
                         Just Origin -> True
                         _ -> False
 
+              tryPop (_:xs) = xs
+              tryPop [] = [origin]
+
       (p1, p2) = (go $ caveStates True, go (caveStates False) + 1) where
-        go ((Just n, _):_) = n
+        go ((Just n, _, _):_) = n
         go (_:xs) = go xs
 
   pure $ show p1 ++ " and " ++ show p2
