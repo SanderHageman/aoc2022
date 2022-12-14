@@ -21,6 +21,7 @@ import ParseLetters (readDisplay)
 import Text.Show.Functions ()
 import Data.Bifunctor
 import qualified Data.Foldable as Seq
+import qualified Data.Map as M
 
 main :: IO ()
 main = days >>= putStrLn
@@ -429,3 +430,42 @@ day13 = do
       p2 = product $ map (+1) $ findIndices (`elem` divi) $ sort (p2' input ++ divi)
 
   pure $ show p1 ++ " and " ++ show p2
+
+-- >>> day14
+-- "[[(498,4),(498,6),(496,6)],[(503,4),(502,4),(502,9),(494,9)]]"
+
+data Rock = RNode (Int, Int) Rock | REnd (Int, Int)
+  deriving (Show)
+
+toRock :: [String] -> Rock
+toRock sts = case sts of
+  [s] -> REnd (makeVertex s)
+  (s:ss) -> RNode (makeVertex s) (toRock ss)
+
+makeVertex :: String -> (Int, Int)
+makeVertex = toTup . map read . splitOn ","
+toTup :: [Int] -> (Int, Int)
+toTup [l,r] = (l,r)
+
+day14 :: IO String
+day14 = do
+  input <- map (map makeVertex . splitOn " -> ") . lines <$> readFile "input/d14"
+
+  let origin = (500,0)
+
+      rocks = foldl' f M.empty input
+        where f r x = foldl' f' r x
+              f' r x = undefined
+
+      bottom rs = maximum $ map (go 0) rs
+        where
+          go y' (RNode (_,y) n) = go (max y' y) n
+          go y' (REnd (_,y)) = max y' y
+
+      isFree p = undefined
+      (dirDown, dirLeftD, dirRightD) = ((0,1), (-1,1), (1,1))
+      moveSand p | isFree $ p +- dirDown = undefined
+                 | isFree $ p +- dirLeftD = undefined
+                 | isFree $ p +- dirRightD = undefined
+
+  pure $ show $  input
