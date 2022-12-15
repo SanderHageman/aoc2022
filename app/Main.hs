@@ -496,3 +496,24 @@ day14 = do
         go (_:xs) = go xs
 
   pure $ show p1 ++ " and " ++ show p2
+
+
+-- >>> day15
+-- "fromList [((-2,15),Beacon),((0,11),Sensor),((2,0),Sensor),((2,10),Beacon),((2,18),Sensor),((8,7),Sensor),((9,16),Sensor),((10,16),Beacon),((10,20),Sensor),((12,14),Sensor),((13,2),Sensor),((14,3),Sensor),((14,17),Sensor),((15,3),Beacon),((16,7),Sensor),((17,20),Sensor),((20,1),Sensor),((20,14),Sensor),((21,22),Beacon),((25,17),Beacon)]"
+
+data D15 = Sensor | Beacon
+  deriving Show
+
+day15 :: IO String
+day15 = do
+  let toTok :: [String] -> [(Int, Int)]
+      toTok [_, _, x, y,_ , _, _, _, x', y'] =
+        toTup $ map (read . filter (\c -> (c =='-') || isDigit c)) [x,y,x',y']
+      toTup (x:y:r) = (x,y):toTup r
+      toTup [] = []
+  input <- map (toTok . words) . lines <$> readFile "input/d15"
+
+  let ye = foldl' f M.empty input
+        where f r [s, b] = M.insert b Beacon $ M.insert s Sensor r
+
+  pure $ show ye
