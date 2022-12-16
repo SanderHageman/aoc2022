@@ -517,3 +517,16 @@ day15 = do
         where f r [s, b] = M.insert b Beacon $ M.insert s Sensor r
 
   pure $ show ye
+
+-- >>> day16
+-- "[(\"AA\",0,[\"DD,\"]),(\"BB\",13,[\"CC,\"]),(\"CC\",2,[\"DD,\"]),(\"DD\",20,[\"CC,\"]),(\"EE\",3,[\"FF,\"]),(\"FF\",0,[\"EE,\"]),(\"GG\",0,[\"FF,\"]),(\"HH\",22,[\"GG\"]),(\"II\",0,[\"AA,\"]),(\"JJ\",21,[\"II\"])]"
+
+day16 :: IO String
+day16 = do
+  let toTok :: [String] -> (String, Int, [String])
+      toTok (_: v: _: _: r: _: _: _: _:l:_) = (v, read $ digs r, splitOn ", " l)
+        where digs s = filter isDigit s
+  input <- map (toTok . words) . lines <$> readFile "input/d16"
+
+
+  pure $ show input
