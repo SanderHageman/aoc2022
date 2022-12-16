@@ -22,6 +22,7 @@ import Text.Show.Functions ()
 import Data.Bifunctor
 import qualified Data.Foldable as Seq
 import qualified Data.Map as M
+import Debug.Trace
 
 main :: IO ()
 main = days >>= putStrLn
@@ -32,7 +33,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13, day14] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13, day14, day15] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -499,7 +500,6 @@ day14 = do
 
 
 -- >>> day15
--- "fromList [((-2,15),Beacon),((0,11),Sensor),((2,0),Sensor),((2,10),Beacon),((2,18),Sensor),((8,7),Sensor),((9,16),Sensor),((10,16),Beacon),((10,20),Sensor),((12,14),Sensor),((13,2),Sensor),((14,3),Sensor),((14,17),Sensor),((15,3),Beacon),((16,7),Sensor),((17,20),Sensor),((20,1),Sensor),((20,14),Sensor),((21,22),Beacon),((25,17),Beacon)]"
 
 data D15 = Sensor | Beacon
   deriving Show
@@ -513,10 +513,35 @@ day15 = do
       toTup [] = []
   input <- map (toTok . words) . lines <$> readFile "input/d15"
 
-  let ye = foldl' f M.empty input
-        where f r [s, b] = M.insert b Beacon $ M.insert s Sensor r
+  let mka = bimap abs abs
+      sumt (x,y) = x+y
 
-  pure $ show ye
+      findOccup tgt = foldl' f [] input
+        where f r [s, b] =
+                let dist = sumt $ mka (s -+ b)
+                    ydif = abs (tgt - snd s)
+                    minx = fst s - dist
+                    yminx = minx + ydif
+                    maxx = fst s + dist
+                    ymaxx = maxx - ydif
+                in if ydif <= dist then (yminx, ymaxx):r else r
+
+      p1 = f (minimum mis, maximum mas)
+        where (mis, mas) = unzip $ findOccup 2_000_000
+              f = abs . uncurry (-)
+
+      p2 = (uncurry (+) . first (*4_000_000)) f
+        where f = case find fst fullSpace of
+                Just (_, c) -> c
+                Nothing -> undefined
+
+      fullSpace = map hasGap [0..4_000_000]
+      hasGap tgt = foldl' findgap (False, h) srtd
+        where (h:srtd) = sort $ findOccup tgt
+              findgap (c, (mi, ma)) (l, r) | l <= ma = (c, (mi, max ma r))
+                                           | otherwise = (True, (l -1, tgt))
+
+  pure $ show p1 ++ " and " ++ show p2
 
 -- >>> day16
 -- "[(\"AA\",0,[\"DD,\"]),(\"BB\",13,[\"CC,\"]),(\"CC\",2,[\"DD,\"]),(\"DD\",20,[\"CC,\"]),(\"EE\",3,[\"FF,\"]),(\"FF\",0,[\"EE,\"]),(\"GG\",0,[\"FF,\"]),(\"HH\",22,[\"GG\"]),(\"II\",0,[\"AA,\"]),(\"JJ\",21,[\"II\"])]"
