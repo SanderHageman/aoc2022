@@ -33,7 +33,7 @@ days :: IO String
 days = do
   let app = fst . foldl' f ("", 1)
       f (r, i) x = (r ++ "day" ++ show i ++ ": " ++ x ++ "\n", i + 1)
-  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13, day14, day15] <&> app
+  sequence [day1,day2,day3,day4,day5,day6,day7,day8,day9,day10, day11, day12, day13, day14, day15, day18] <&> app
 
 -- >>> day1
 -- "66616 and 199172"
@@ -553,5 +553,30 @@ day16 = do
         where digs s = filter isDigit s
   input <- map (toTok . words) . lines <$> readFile "input/d16"
 
+{- >>>day18
+"58"
+-}
+day18 :: IO String
+day18 = do
+  input <- map (map read . splitOn ",") . lines <$> readFile "input/d18" :: IO [[Int]]
 
-  pure $ show input
+  let vertices = Set.fromList input
+      nbs v f = filter f $ map (zipWith (+) v) nbs'
+        where nbs' = [[1,0,0], [0,1,0], [0,0,1],[-1,0,0], [0,-1,0], [0,0,-1]]
+
+      findExposed vcs = Set.foldl' f 0 vcs
+        where f r x = r + 6 - length (nbs x (`Set.member` vcs))
+
+      ((a,b,c), (a',b',c')) = (mapTup (+(-1)) l, mapTup (+1) h)
+        where (l, h) = (mapTup minimum sep, mapTup maximum sep)
+              sep = unzip3 $ map toTup input
+              toTup [x,y,z] = (x,y,z)
+      mapTup f (x,y,z) = (f x, f y, f z)
+      inRange [x,y,z] = (x >= a && x <= a') && (y >= b && y <= b') && (z >= c && z <= c')
+
+      dfs cur v = foldl' (\vis n -> if n `elem` vis then vis else dfs n vis) (v ++ [cur]) (nbs cur (\n -> inRange n && Set.notMember n vertices))
+      realAir = Set.fromList $ dfs [a,b,c] []
+
+      p1 = findExposed vertices
+      p2 = length [()| v <- input, _ <- nbs v (`Set.member` realAir)]
+  pure $ show p1 ++ " and " ++ show p2
